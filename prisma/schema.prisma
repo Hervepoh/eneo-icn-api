@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Bank {
+  id           String        @id @default(uuid()) @db.Char(36)
+  name         String        @db.VarChar(255)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  Transactions Transaction[]
+
+  @@map("banks")
+}
+
+model PaymentMode {
+  id           String        @id @default(uuid()) @db.Char(36)
+  name         String        @db.VarChar(255)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  Transactions Transaction[]
+
+  @@map("payment_modes")
+}
+
+model Status {
+  id           Int           @id @default(autoincrement())
+  name         String        @db.VarChar(255)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  Transactions Transaction[]
+
+  @@map("status")
+}
+
+model Reference {
+  id        String   @id @default(uuid()) @db.Char(36)
+  reference String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("references")
+}
+
+model User {
+  id                String              @id @default(uuid()) @db.Char(36) // Use CHAR(36) for UUID
+  name              String
+  email             String              @unique
+  password          String
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  ConnectionHistory ConnectionHistory[]
+  transactions      Transaction[]       @relation("Creator")
+  roles          UserRole[]
+
+  @@map("users")
+}
+
+model Role {
+  id             String           @id @default(uuid()) @db.Char(36)
+  name           String           @unique
+  permissions    Permission[]     @relation("role_permissions")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  RolePermission RolePermission[]
+  UserRole       UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId]) // Composite primary key
+  @@map("user_roles")
+}
+
+model Permission {
+  id             String           @id @default(uuid()) @db.Char(36)
+  name           String           @unique
+  roles          Role[]           @relation("role_permissions")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  RolePermission RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId]) // Composite primary key
+  @@map("role_permissions")
+}
+
+model Transaction {
+  id               String    @id @default(uuid()) @db.Char(36)
+  reference        String?   @unique
+  userId           String    @db.Char(36) // Référence à User
+  name             String
+  amount           Float
+  bankId           String    @db.Char(36) // Référence à Bank
+  paymentDate      DateTime
+  paymentModeId    String    @db.Char(36) // Référence à PaymentMode
+  statusId         Int       @default(1)
+  validatorId      String?   @db.Char(36) // Référence à User (Validateur)
+  validatedAt      DateTime?
+  refusal          Boolean   @default(false)
+  reasonForRefusal String?
+  createdBy        String?
+  modifiedBy       String?
+  deleted          Boolean   @default(false)
+  deletedBy        String?
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  status            Status             @relation(fields: [statusId], references: [id])
+  user              User               @relation("Creator", fields: [userId], references: [id])
+  bank              Bank               @relation(fields: [bankId], references: [id])
+  paymentMode       PaymentMode        @relation(fields: [paymentModeId], references: [id])
+  TransactionDetail TransactionDetail?
+
+  @@map("transactions")
+}
+
+model TransactionDetail {
+  id            String    @id @default(cuid())
+  transactionId String    @unique
+  contract      String
+  invoice       String
+  name          String
+  amountUnpaid  Float
+  amountTopaid  Float
+  selected      Boolean   @default(true)
+  deleted       Boolean   @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+
+  @@map("transaction_details")
+}
+
+enum EventType {
+  LOGIN
+  LOGOUT
+}
+
+model ConnectionHistory {
+  id        Int       @id @default(autoincrement())
+  userId    String // Usage of String to match User UUID ID  
+  user      User      @relation(fields: [userId], references: [id])
+  ipAddress String
+  eventType EventType // "login" ou "logout"
+  timestamp DateTime  @default(now()) // Date et heure de connexion ou déconnexion
+
+  @@map("connection_histories")
+}
+
+enum NotificationMethod {
+  EMAIL
+  WHATSAPP
+}
+
+model Notification {
+  id        Int                @id @default(autoincrement())
+  email     String? // Peut être nul si vous n'envoyez que WhatsApp
+  phone     String? // Numéro de téléphone pour WhatsApp, peut être nul si vous n'envoyez que par e-mail
+  message   String
+  method    NotificationMethod
+  subject   String
+  template  String
+  sent      Boolean            @default(false) // Indique si la notification a été envoyée
+  sentAt    DateTime? // Date d'envoi, peut être nul si pas encore envoyé
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  @@map("notifications")
+}

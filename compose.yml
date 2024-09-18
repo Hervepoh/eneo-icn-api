@@ -1,0 +1,19 @@
+services:
+
+  mysql:
+    image: mysql:8.4.2
+    container_name: mysql8.4.2
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    volumes: 
+      - "./database:/var/lib/mysql"
+    ports:
+      - "3307:3306"
+    
+  adminer:
+    image: adminer
+    container_name: adminer-container
+    ports:
+      - "8090:8080"
+    restart: unless-stopped
