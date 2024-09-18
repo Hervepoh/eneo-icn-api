@@ -52,7 +52,7 @@ export const sendToken = (user:UserEntity, statusCode: number, res: Response) =>
 
     res.status(statusCode).json({
         success: true,
-        user,
+        user: user.cleanUser(),
         accessToken,
         refreshToken
     });

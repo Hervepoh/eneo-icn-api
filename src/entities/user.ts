@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { ACCESS_TOKEN_EXPIRE, ACCESS_TOKEN_SECRET, REFRESH_TOKEN_EXPIRE, REFRESH_TOKEN_SECRET } from '../secrets';
 import { expiredFormat } from '../libs/utils/jwt';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret'; 
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
 export class UserEntity {
     id: string;
@@ -29,10 +29,15 @@ export class UserEntity {
     }
 
     signAccessToken(): string {
-        return jwt.sign({id: this.id} , ACCESS_TOKEN_SECRET , { expiresIn: expiredFormat(ACCESS_TOKEN_EXPIRE) } )
+        return jwt.sign({ id: this.id }, ACCESS_TOKEN_SECRET, { expiresIn: expiredFormat(ACCESS_TOKEN_EXPIRE) })
     }
 
     signRefreshToken(): string {
-        return jwt.sign({ id: this.id }, REFRESH_TOKEN_SECRET , { expiresIn: expiredFormat(REFRESH_TOKEN_EXPIRE) });
+        return jwt.sign({ id: this.id }, REFRESH_TOKEN_SECRET, { expiresIn: expiredFormat(REFRESH_TOKEN_EXPIRE) });
+    }
+
+    cleanUser() {
+        const { password, ...userWithoutPassword } = this; // Exclure le mot de passe
+        return userWithoutPassword; // Retourner l'objet sans le mot de passe
     }
 }

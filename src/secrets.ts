@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env' })
 
 export const PORT = process.env.NODE_PORT;
+export const NODE_ORIGIN = process.env.NODE_ORIGIN!;
 
 export const SALT_ROUNDS = process.env.SALT_ROUNDS;
 

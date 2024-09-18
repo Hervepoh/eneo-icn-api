@@ -1,5 +1,7 @@
 import express, { Express, NextFunction, Request, Response } from "express";
-import { PORT } from "./secrets";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import { NODE_ORIGIN, PORT } from "./secrets";
 import rootRouter from "./routes";
 import { PrismaClient } from "@prisma/client";
 import { ErrorMiddleware } from "./middlewares/error";
@@ -10,7 +12,23 @@ const app: Express = express();
 app.set('trust proxy', true);
 
 // body parser
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+
+// cookie parser
+app.use(cookieParser());
+
+// cors => cross origin resource sharing
+// array of allow domain declare in .env
+const origin = NODE_ORIGIN.split(";");
+app.use(
+  cors({
+    origin: origin,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+    credentials: true,
+  })
+);
+
 
 app.use('/api/v1', rootRouter);
 

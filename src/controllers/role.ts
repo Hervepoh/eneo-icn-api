@@ -250,7 +250,7 @@ export const getPermissions = async (req: Request, res: Response, next: NextFunc
     const roleWithPermissions = await prismaClient.role.findUnique({
         where: { id: id },
         include: {
-            permissions: true, // Inclure les permissions associées
+            RolePermission: true, // Inclure les permissions associées
         },
     });
     if (!roleWithPermissions) throw new NotFoundException("Role not found", ErrorCode.RESSOURCE_NOT_FOUND);
@@ -260,7 +260,7 @@ export const getPermissions = async (req: Request, res: Response, next: NextFunc
         role: {
             id: roleWithPermissions.id,
             name: roleWithPermissions.name,
-            permissions: roleWithPermissions.permissions, // Retourner les permissions
+            permissions: roleWithPermissions.RolePermission, // Retourner les permissions
         },
     });
 

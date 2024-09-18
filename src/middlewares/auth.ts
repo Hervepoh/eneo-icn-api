@@ -12,7 +12,7 @@ import { User } from "@prisma/client";
 // Extend the Request interface
 declare module 'express' {
     interface Request {
-        user?: User  & { role?: any }  & { roles?: any[] };
+        user?: User & { role?: any } & { roles?: any[] };
     }
 }
 
@@ -20,8 +20,8 @@ declare module 'express' {
 // Authenticated User
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     // 1. extract the token from the headers
-    // const access_token = req.cookies.access_token;
-    const access_token = req.headers.authorization;
+    const access_token = req.cookies.access_token;
+    //const access_token = req.headers.authorization;
     if (!access_token) {
         return next(new UnauthorizedException("Unauthorized: Please login to access this ressource", ErrorCode.UNAUTHORIZE))
     }
@@ -36,8 +36,8 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
         const user = await redis.get(payload.id);
         if (!user) {
             // Check if user is in the database
-            const userDB = await prismaClient.user.findFirst({ 
-                where: { id: payload.id } ,
+            const userDB = await prismaClient.user.findFirst({
+                where: { id: payload.id },
                 include: { roles: true }, // Include roles relation
             });
             if (!userDB) {
@@ -59,12 +59,12 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
 
 
 };
-export default authMiddleware;
+
 
 // Administrator User
-export const adminMiddleware = async(req: Request, res:Response, next:NextFunction) => {
+export const adminMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const user = req.user
-    if(user?.role == 'ADMIN') {
+    if (user?.role == 'ADMIN') {
         next()
     }
     else {
@@ -74,32 +74,39 @@ export const adminMiddleware = async(req: Request, res:Response, next:NextFuncti
 
 }
 
-
 // Validate User Role/Permissions
 export const authorizeMiddleware = (...allowedPermissions: string[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
-         const userRoles = req.user?.roles || []; // Assuming roles is an array
+        const userRoles = req.user?.roles || []; // Assuming roles is an array
+
+        if (!userRoles.length) {
+            return next(new HttpException(`Forbidden: No roles assigned to the user`, 403, ErrorCode.UNAUTHORIZE, null));
+        }
 
         // Fetch permissions for the user's roles
+        // Récupérer les permissions pour les rôles de l'utilisateur
         const permissions = await Promise.all(userRoles.map(role =>
-            prismaClient.role.findUnique({
-                where: { id: role.id },
-                include: { permissions: true },
+            prismaClient.rolePermission.findMany({
+                where: { roleId: role.id }, // Utilisation de role.id pour la recherche
+                include: {
+                    permission: true // Inclure les permissions associées
+                },
             })
         ));
-        console.log("permissions",permissions);
 
-        // Flatten the permissions and check against allowed permissions
-        const userPermissions = permissions.flatMap(role => role?.permissions || []);
-        const userPermissionNames = userPermissions.map(permission => permission.name);
+        // Aplatir les permissions et vérifier contre les permissions autorisées
+        const userPermissions = permissions.flatMap(rolePermissions =>
+            rolePermissions.map(rp => rp.permission.name)
+        );
 
-        const hasPermission = userPermissionNames.some(permission => allowedPermissions.includes(permission));
-
+        const hasPermission = userPermissions.some(permission => allowedPermissions.includes(permission));
         if (!hasPermission) {
             return next(new HttpException(`Forbidden: You do not have permission to access this resource`, 403, ErrorCode.UNAUTHORIZE, null));
         }
+
+
         next();
     }
 }
 
-
+export default authMiddleware;

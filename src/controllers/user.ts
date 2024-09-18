@@ -10,8 +10,6 @@ import BadRequestException from "../exceptions/bad-requests";
 import UnprocessableException from "../exceptions/validation";
 import HttpException, { ErrorCode } from "../exceptions/http-exception";
 import { acceptablePasswordPolicy, isAnAcceptablePassword, isValidEmail, isValidPassword, passwordPolicy } from "../libs/utils/validator";
-
-import { CatchAsyncError } from "../middlewares/catchAsyncErrors";
 import { MAIL_NO_REPLY, SALT_ROUNDS } from "../secrets";
 import { signUpSchema } from "../schema/users";
 import { NotificationMethod } from "@prisma/client";
@@ -91,3 +89,21 @@ export const get =
             });
         }
     };
+    
+
+//-----------------------------------------------
+//              get user notifications
+//-----------------------------------------------
+export const getUserNotification =
+  async (req: Request, res: Response, next: NextFunction) => {
+
+    const notifications = await prismaClient.internalNotification
+      .findMany(
+        { where: { createdAt: "desc" } }
+      )
+
+    res.status(200).json({
+      success: true,
+      notifications,
+    });
+  };

@@ -2,22 +2,23 @@ import { NextFunction, Request, Response } from "express";
 import ejs from "ejs";
 import path from "path";
 import bcrypt from "bcrypt";
-import jwt, { Secret } from "jsonwebtoken";
+import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 
 import prismaClient from "../libs/prismadb";
 import sendMail from "../libs/utils/sendMail";
-import { expiredFormat, sendToken } from "../libs/utils/jwt";
+import { accessTokenOptions, expiredFormat, refreshTokenOptions, sendToken } from "../libs/utils/jwt";
 import { isValidPassword, passwordPolicy } from "../libs/utils/validator";
 import HttpException, { ErrorCode } from "../exceptions/http-exception";
 import BadRequestException from "../exceptions/bad-requests";
 import NotFoundException from "../exceptions/not-found";
-import { ACTIVATION_TOKEN_EXPIRE, ACTIVATION_TOKEN_SECRET, MAIL_NO_REPLY, SALT_ROUNDS } from "../secrets";
+import { ACCESS_TOKEN_EXPIRE, ACCESS_TOKEN_SECRET, ACTIVATION_TOKEN_EXPIRE, ACTIVATION_TOKEN_SECRET, MAIL_NO_REPLY, REDIS_SESSION_EXPIRE, REFRESH_TOKEN_EXPIRE, REFRESH_TOKEN_SECRET, SALT_ROUNDS } from "../secrets";
 
 import { EventType } from "../constants/enum";
 import { UserEntity } from "../entities/user";
 import { signUpSchema } from "../schema/users";
 import ConfigurationException from "../exceptions/configuration";
 import { redis } from "../libs/utils/redis";
+import UnauthorizedException from "../exceptions/unauthorized";
 
 
 //-----------------------------------------------------------------------------
@@ -240,7 +241,6 @@ export const signin =
             throw new NotFoundException("Invalid Email or Password", ErrorCode.INVALID_DATA);
         }
 
-
         if (user.roles.length === 0) {
             return next(new ConfigurationException("User has no roles assigned", ErrorCode.BAD_CONFIGURATION));
         }
@@ -293,20 +293,6 @@ export const signin =
 
 
 //-----------------------------------------------
-//              Get User /me
-//-----------------------------------------------
-
-// Handling the me process
-export const me =
-    async (req: Request, res: Response, next: NextFunction) => {
-        res.status(200).json({
-            success: true,
-            user: req.user,
-        });
-    };
-
-
-//-----------------------------------------------
 //               Logout User /logout
 //-----------------------------------------------
 
@@ -327,3 +313,77 @@ export const signout =
         });
 
     };
+
+
+//-----------------------------------------------
+//              Update User Access Token /user/refresh
+//-----------------------------------------------
+
+export const updateAccessToken =
+    async (req: Request, res: Response, next: NextFunction) => {
+        // const refresh_token = req.headers.refresh_token;
+        const refresh_token = req.cookies.refresh_token as string;
+
+        const message = "Could not refresh token , please login for access this ressource.";
+        if (!refresh_token) throw new UnauthorizedException(message, ErrorCode.UNAUTHORIZE);
+
+
+        const decoded = jwt.verify(
+            refresh_token,
+            REFRESH_TOKEN_SECRET as string
+        ) as JwtPayload;
+        if (!decoded) {
+            throw new UnauthorizedException(message, ErrorCode.UNAUTHORIZE);
+        }
+
+        const session = await redis.get(decoded.id);
+        if (!session) {
+            throw new UnauthorizedException(message, ErrorCode.UNAUTHORIZE);
+        }
+
+        const user = JSON.parse(session);
+
+        const accessToken = jwt.sign(
+            { id: user._id },
+            ACCESS_TOKEN_SECRET,
+            { expiresIn: expiredFormat(ACCESS_TOKEN_EXPIRE) }
+        );
+
+        const refreshToken = jwt.sign(
+            { id: user._id },
+            REFRESH_TOKEN_SECRET,
+            { expiresIn: expiredFormat(REFRESH_TOKEN_EXPIRE) }
+        );
+
+        // Add User in the request to user it in any request
+        req.user = user;
+
+        res.cookie("access_token", accessToken, accessTokenOptions);
+        res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+
+        //Update redis session
+        redis.set(user.id, JSON.stringify(user), "EX", REDIS_SESSION_EXPIRE);
+
+        res.status(200).json({
+            success: true,
+            accessToken,
+            refreshToken,
+        });
+
+    };
+
+
+
+//-----------------------------------------------
+//              Get User /me
+//-----------------------------------------------
+
+// Handling the me process
+export const me =
+    async (req: Request, res: Response, next: NextFunction) => {
+        res.status(200).json({
+            success: true,
+            user: req.user,
+        });
+    };
+

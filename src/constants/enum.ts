@@ -17,5 +17,6 @@ export enum serviceType {
     UNPAID = "UNPAID",
     ROLE = "ROLE",
     PERMISSION = "PERMISSION",
+    NOTIFICATION = "NOTIFICATION",
 }
 

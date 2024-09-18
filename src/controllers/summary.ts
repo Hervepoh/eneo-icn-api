@@ -103,13 +103,13 @@ async function fetchSummaryData(from: Date, to: Date) {
     },
   });
 
+  const amountByStatus: any[] = [];
+  // const amountByStatus = sumAmountByStatus.reduce((acc, curr) => {
+  //   acc[curr.statusId] = curr._sum.amount;  // Utiliser _sum.amount ici
+  //   return acc;
+  // }, {});
 
-  const amountByStatus = sumAmountByStatus.reduce((acc, curr) => {
-    acc[curr.statusId] = curr._sum.amount;  // Utiliser _sum.amount ici
-    return acc;
-  }, {});
-
-  console.log("amountByStatus", amountByStatus)
+  // console.log("amountByStatus", amountByStatus)
   //formatage pour l'api  
   const categories = countByStatus.map(categorie => {
     return {
@@ -142,29 +142,30 @@ async function fetchSummaryData(from: Date, to: Date) {
   });
 
   // Étape 2: Compter les demandes par utilisateur et statut
-  const requesterCounts = requesters.reduce((acc, { status, userId }) => {
-    const key: string = `${status}_${userId}`;
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {});
+  // const requesterCounts = requesters.reduce((acc, { status, userId }) => {
+  //   const key: string = `${status}_${userId}`;
+  //   acc[key] = (acc[key] || 0) + 1;
+  //   return acc;
+  // }, {});
 
   // Étape 3: Regrouper par statut
-  const groupedByStatus = Object.entries(requesterCounts).reduce((acc, [key, count]) => {
-    const [status, userId] = key;
-    if (!acc[status]) {
-      acc[status] = [];
-    }
-    acc[status].push({ userId, count });
-    return acc;
-  }, {});
+  // const groupedByStatus = Object.entries(requesterCounts).reduce((acc, [key, count]) => {
+  //   const [status, userId] = key;
+  //   if (!acc[status]) {
+  //     acc[status] = [];
+  //   }
+  //   acc[status].push({ userId, count });
+  //   return acc;
+  // }, {});
 
   // Étape 4: Obtenir les 10 meilleurs demandeurs par statut
-  const topRequestersByStatus = Object.keys(groupedByStatus).map(status => ({
-    status,
-    topRequesters: groupedByStatus[status]
-      .sort((a, b) => b.count - a.count) // Trier par compte
-      .slice(0, 10) // Prendre les 10 meilleurs
-  }));
+  const topRequestersByStatus:any = [];
+  // const topRequestersByStatus = Object.keys(groupedByStatus).map(status => ({
+  //   status,
+  //   topRequesters: groupedByStatus[status]
+  //     .sort((a: { count: number; }, b: { count: number; }) => b.count - a.count) // Trier par compte
+  //     .slice(0, 10) // Prendre les 10 meilleurs
+  // }));
   const activeDays = await prismaClient.transaction.groupBy({
     by: ['createdAt'],
     where: {
@@ -189,7 +190,7 @@ async function fetchSummaryData(from: Date, to: Date) {
   }));
 
 
-  const days = fillMissingDays(activeDays, from, to);
+  const days: any = []; //fillMissingDays(activeDays, from, to);
   return {
     categories,
     categories_amount,
@@ -205,82 +206,82 @@ async function fetchSummaryData(from: Date, to: Date) {
 export const me =
   async (req: Request, res: Response, next: NextFunction) => {
 
-    // const from = new Date(req.body.from);
-    // const to = new Date(req.body.to);
-    const from = moment(req.body.from, 'DD/MM/YYYY').toDate();
-    const to = moment(req.body.to, 'DD/MM/YYYY').toDate();
-    const userId = req.user?.id;
+    //     // const from = new Date(req.body.from);
+    //     // const to = new Date(req.body.to);
+    //     const from = moment(req.body.from, 'DD/MM/YYYY').toDate();
+    //     const to = moment(req.body.to, 'DD/MM/YYYY').toDate();
+    //     const userId = req.user?.id;
 
 
-    // Récupération du nombre de requêtes par statut
-    const requestCountByStatus = await requestModel.aggregate([
-      { $match: { payment_date: { $gte: from, $lte: to }, userId } },
-      { $group: { _id: '$status', count: { $count: {} } } }
-    ]);
-    console.log("Voici", res.cookie)
+    //     // Récupération du nombre de requêtes par statut
+    //     const requestCountByStatus = await requestModel.aggregate([
+    //       { $match: { payment_date: { $gte: from, $lte: to }, userId } },
+    //       { $group: { _id: '$status', count: { $count: {} } } }
+    //     ]);
+    //     console.log("Voici", res.cookie)
 
-    // Récupération du nombre total de requêtes
-    const totalRequestCount = await requestModel.countDocuments({ payment_date: { $gte: from, $lte: to }, userId });
+    //     // Récupération du nombre total de requêtes
+    //     const totalRequestCount = await requestModel.countDocuments({ payment_date: { $gte: from, $lte: to }, userId });
 
-    // Récupération du montant des requêtes par statut
-    const amountByStatus = await requestModel.aggregate([
-      { $match: { createdAt: { $gte: from, $lte: to }, userId } },
-      { $group: { _id: '$status', totalAmount: { $sum: '$amount' } } }
-    ]);
+    //     // Récupération du montant des requêtes par statut
+    //     const amountByStatus = await requestModel.aggregate([
+    //       { $match: { createdAt: { $gte: from, $lte: to }, userId } },
+    //       { $group: { _id: '$status', totalAmount: { $sum: '$amount' } } }
+    //     ]);
 
-    // Récupération des 10 principaux demandeurs de requêtes par statut
-    // Étape 1: Récupérer les demandes dans la plage de dates spécifiée
-    const requests = await prismaClient.tra.findMany({
-      where: {
-        createdAt: {
-          gte: from,  // Date de début
-          lte: to,    // Date de fin
-        },
-        userId: userId,  // Filtrer par userId
-      },
-      select: {
-        status: true,
-        userId: true,
-      },
-    });
+    //     // Récupération des 10 principaux demandeurs de requêtes par statut
+    //     // Étape 1: Récupérer les demandes dans la plage de dates spécifiée
+    //     const requests = await prismaClient.tra.findMany({
+    //       where: {
+    //         createdAt: {
+    //           gte: from,  // Date de début
+    //           lte: to,    // Date de fin
+    //         },
+    //         userId: userId,  // Filtrer par userId
+    //       },
+    //       select: {
+    //         status: true,
+    //         userId: true,
+    //       },
+    //     });
 
-    // Étape 2: Compter les demandes par utilisateur et statut
-    const requesterCounts = requests.reduce((acc, { status, userId }) => {
-      const key = `${status}_${userId}`;
-      acc[key] = (acc[key] || 0) + 1;
-      return acc;
-    }, {});
+    //     // Étape 2: Compter les demandes par utilisateur et statut
+    //     const requesterCounts = requests.reduce((acc: { [x: string]: any; }, { status, userId }: any) => {
+    //       const key = `${status}_${userId}`;
+    //       acc[key] = (acc[key] || 0) + 1;
+    //       return acc;
+    //     }, {});
 
-    // Étape 3: Regrouper par statut
-    const groupedByStatus = Object.entries(requesterCounts).reduce((acc, [key, count]) => {
-      const [status, userId] = key;
-      if (!acc[status]) {
-        acc[status] = [];
-      }
-      acc[status].push({ userId, count });
-      return acc;
-    }, {});
+    //     // Étape 3: Regrouper par statut
+    //     const groupedByStatus = Object.entries(requesterCounts).reduce((acc, [key, count]) => {
+    //       const [status, userId] = key;
+    //       if (!acc[status]) {
+    //         acc[status] = [];
+    //       }
+    //       acc[status].push({ userId, count });
+    //       return acc;
+    //     }, {});
 
-    // Étape 4: Obtenir les 10 meilleurs demandeurs par statut
-    const topRequestersByStatus = Object.keys(groupedByStatus).map(status => ({
-      status,
-      topRequesters: groupedByStatus[status]
-        .sort((a, b) => b.count - a.count) // Trier par compte
-        .slice(0, 10) // Prendre les 10 meilleurs
-    }));
+    //     // Étape 4: Obtenir les 10 meilleurs demandeurs par statut
+    //     const topRequestersByStatus = Object.keys(groupedByStatus).map(status => ({
+    //       status,
+    //       topRequesters: groupedByStatus[status]
+    //         .sort((a: { count: number; }, b: { count: number; }) => b.count - a.count) // Trier par compte
+    //         .slice(0, 10) // Prendre les 10 meilleurs
+    //     }));
 
-    // Afficher le résultat
-    console.log(topRequestersByStatus);
+    //     // Afficher le résultat
+    //     console.log(topRequestersByStatus);
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        requestCountByStatus,
-        totalRequestCount,
-        amountByStatus,
-        topRequestersByStatus
-      }
-    });
+    //     return res.status(200).json({
+    //       success: true,
+    //       data: {
+    //         requestCountByStatus,
+    //         totalRequestCount,
+    //         amountByStatus,
+    //         topRequestersByStatus
+    //       }
+    //     });
 
   };
 

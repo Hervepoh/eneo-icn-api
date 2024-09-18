@@ -69,7 +69,6 @@ model User {
 model Role {
   id             String           @id @default(uuid()) @db.Char(36)
   name           String           @unique
-  permissions    Permission[]     @relation("role_permissions")
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
   RolePermission RolePermission[]
@@ -91,7 +90,6 @@ model UserRole {
 model Permission {
   id             String           @id @default(uuid()) @db.Char(36)
   name           String           @unique
-  roles          Role[]           @relation("role_permissions")
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
   RolePermission RolePermission[]
@@ -194,4 +192,16 @@ model Notification {
   createdAt DateTime           @default(now()) @map("created_at")
 
   @@map("notifications")
+}
+
+model InternalNotification  {
+  id        String   @id @default(cuid()) // Identifiant unique
+  userId    String
+  title     String
+  message   String
+  status    String   @default("unread")
+  createdAt DateTime @default(now()) // Timestamp de création
+  updatedAt DateTime @updatedAt // Timestamp de mise à jour
+
+  @@map("internal_notifications")
 }

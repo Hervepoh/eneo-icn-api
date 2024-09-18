@@ -5,6 +5,12 @@ import { SALT_ROUNDS } from '../src/secrets';
 
 const prisma = new PrismaClient();
 
+// Liste des moyens de paiement
+const paymentModes = ['CASH', 'VIREMENT'];
+
+// Liste des banques
+const banks = ['UBA', 'SGC', 'BGFI', 'NFC', 'BICEC', 'BEAC'];
+
 // Liste des rôles
 const status = [
   'deleted',
@@ -19,12 +25,12 @@ const status = [
 ];
 
 // Liste des rôles
-const roles = ['ADMIN', 'USER', 'ASSIGNATOR','VALIDATOR', 'MANAGER'];
+const roles = ['ADMIN', 'USER', 'ASSIGNATOR', 'VALIDATOR', 'MANAGER'];
 
 // Liste des permissions
 const services = Object.values(serviceType);
 const permissions = [
-  'CREATE', 'READ', 'UPDATE', 'DELETE', 'BULKCREATE', 'BULKDELETE'
+  'CREATE', 'READ', 'WRITE' ,'UPDATE', 'DELETE', 'BULKCREATE', 'BULKDELETE'
 ];
 const servicePermissions = services.flatMap(service =>
   permissions.map(permission => `${service}-${permission}`)
@@ -61,16 +67,39 @@ async function main() {
 
 
   // Vider les tables
-  await prisma.rolePermission.deleteMany({});
+  await prisma.bank.deleteMany({});
+  await prisma.connectionHistory.deleteMany({});
+  await prisma.internalNotification.deleteMany({});
+  await prisma.notification.deleteMany({});
+  await prisma.paymentMode.deleteMany({});
   await prisma.userRole.deleteMany({});
+  await prisma.rolePermission.deleteMany({});
   await prisma.permission.deleteMany({});
   await prisma.role.deleteMany({});
-  await prisma.user.deleteMany({});
-  await prisma.status.deleteMany({});
   await prisma.transactionDetail.deleteMany({});
   await prisma.transaction.deleteMany({});
+  await prisma.user.deleteMany({});
+  await prisma.status.deleteMany({});
 
   console.log(`Tables cleared.`);
+
+  // Créer les Banques
+  const bankPromises = banks.map(item =>
+    prisma.bank.create({
+      data: { name: item },
+    })
+  );
+  const createdBanks = await Promise.all(bankPromises);
+  console.log(`Created banks: ${banks.join(', ')}`);
+
+  // Créer les Banques
+  const payModePromises = paymentModes.map(item =>
+    prisma.paymentMode.create({
+      data: { name: item },
+    })
+  );
+  const createdPaymentMode = await Promise.all(payModePromises);
+  console.log(`Created paymentModes: ${paymentModes.join(', ')}`);
 
   // Créer les permissions
   const permissionPromises = servicePermissions.map(permission =>
@@ -95,7 +124,7 @@ async function main() {
     prisma.user.create({
       data: {
         ...u,
-        password: await bcrypt.hash(u.password,parseInt(SALT_ROUNDS || '10')!)
+        password: await bcrypt.hash(u.password, parseInt(SALT_ROUNDS || '10')!)
       },
     })
   );
@@ -103,7 +132,7 @@ async function main() {
   createdUsers.forEach(user => {
     console.log(`Created user with id: ${user.id}`);
   });
-  
+
   // (Optionnel) Associer les rôles aux utilisateurs
   const ID_ROLE_ADMIN = await prisma.user.findFirst({
     where: { name: "ADMIN" }
@@ -111,7 +140,7 @@ async function main() {
   await prisma.userRole.create({
     data: {
       userId: ID_ROLE_ADMIN?.id!,
-      roleId: createdRoles[0].id, 
+      roleId: createdRoles[0].id,
     }
   });
 
@@ -119,7 +148,7 @@ async function main() {
     await prisma.userRole.create({
       data: {
         userId: user.id,
-        roleId: createdRoles[1].id, 
+        roleId: createdRoles[1].id,
       }
     });
   }
