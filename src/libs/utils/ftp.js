@@ -1,7 +1,6 @@
+"use strict";
 // import { Client } from "basic-ftp"
-
 // example()
-
 // async function example() {
 //     const client = new Client()
 //     client.ftp.verbose = true

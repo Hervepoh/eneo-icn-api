@@ -1,13 +1,11 @@
-import { Document, Model } from "mongoose";
+import prismaClient from "../prismadb";
 
 interface MonthData {
   month: string;
   count: number;
 }
 
-export async function generateLast12MonthsData<T extends Document>(
-  model: Model<T>
-): Promise<{ last12Months: MonthData[] }> {
+export async function generateLast12MonthsData() {
   const last12Months: MonthData[] = [];
   const currentDate = new Date();
   currentDate.setDate(currentDate.getDate() + 1);
@@ -31,10 +29,12 @@ export async function generateLast12MonthsData<T extends Document>(
       year: "numeric",
     });
 
-    const count = await model.countDocuments({
-      createdAt: {
-        $gte: startDate,
-        $lt: endDate,
+    const count = await prismaClient.transaction.count({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lt: endDate,
+        },
       },
     });
     last12Months.push({ month:monthYear, count });

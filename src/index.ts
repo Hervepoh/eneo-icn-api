@@ -3,7 +3,6 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { NODE_ORIGIN, PORT } from "./secrets";
 import rootRouter from "./routes";
-import { PrismaClient } from "@prisma/client";
 import { ErrorMiddleware } from "./middlewares/error";
 
 const app: Express = express();

@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const error_handler_1 = require("../error-handler");
+const user_1 = require("../controllers/user");
+const userRoutes = (0, express_1.Router)();
+userRoutes.post('/', (0, error_handler_1.errorHandler)(user_1.create));
+userRoutes.get('/', (0, error_handler_1.errorHandler)(user_1.get));
+userRoutes.get('/notifications', (0, error_handler_1.errorHandler)(user_1.getUserNotification));
+exports.default = userRoutes;
